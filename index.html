@@ -5,69 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Breakout Slime Infinite</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #eceff1; font-family: sans-serif; touch-action: none; }
-        /* 広告エリア：上下110px */
-        #ad-top, #ad-bottom { position: fixed; left: 0; width: 100%; height: 110px; background: #333; z-index: 100; display: flex; align-items: center; justify-content: center; }
-        #ad-top { top: 0; }
-        #ad-bottom { bottom: 0; }
-        iframe { border: none; width: 100%; height: 110px; }
-        
-        canvas { display: block; margin-top: 110px; background: #cfd8dc; }
-        #ui { position: absolute; top: 120px; width: 100%; text-align: center; font-size: 22px; font-weight: bold; color: #455a64; pointer-events: none; text-shadow: 1px 1px 2px white; }
-        
-        /* スタート画面 */
-        #startScreen {
-            position: absolute; top: 110px; left: 0; width: 100%; height: calc(100vh - 220px);
-            background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
+        /* 画面を「上・中・下」に分離 */
+        body { 
+            margin: 0; height: 100vh; display: flex; flex-direction: column; 
+            background: #eceff1; font-family: sans-serif; overflow: hidden; touch-action: none; 
         }
-        #goButton { padding: 15px 40px; font-size: 24px; background: #009688; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        
+        /* 上下の広告枠 */
+        #ad-top, #ad-bottom { 
+            width: 100%; height: 110px; background: #333; 
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 100;
+        }
+        iframe { border: none; width: 100%; height: 100%; }
+
+        /* ゲームエリア */
+        #game-area { 
+            flex-grow: 1; position: relative; width: 100%; background: #cfd8dc; overflow: hidden; 
+        }
+        
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; font-size: 22px; font-weight: bold; color: #455a64; pointer-events: none; z-index: 10; text-shadow: 1px 1px 2px white; }
+        
+        /* メニュー（ゲームオーバー）画面 */
+        #menuScreen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); display: flex; flex-direction: column; 
+            align-items: center; justify-content: flex-start; z-index: 200; padding: 15px 0; box-sizing: border-box;
+        }
+
+        /* 中央広告コンテナ（被り防止マージン） */
+        #ad-middle-container { 
+            width: 300px; height: 250px; background: #ddd;
+            display: none; justify-content: center; align-items: center; 
+            overflow: hidden; position: relative; flex-shrink: 0;
+            margin-bottom: 35px;
+            border: 1px solid #ccc;
+        }
+        
+        .btn-group { 
+            display: flex; flex-direction: column; align-items: center; gap: 10px; 
+            flex-shrink: 0; width: 100%; margin-top: auto; padding-bottom: 15px;
+        }
+        .menu-btn { padding: 14px 30px; font-size: 18px; border: none; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; text-decoration: none; width: 240px; text-align: center; }
+        #goButton { background: #009688; box-shadow: 0 4px #00695c; }
+        .link-btn { background: #ff4081; box-shadow: 0 4px #c2185b; }
+        .best-info { color: #009688; font-size: 18px; font-weight: bold; margin: 5px 0; }
     </style>
 </head>
 <body>
+    <div id="ad-top"><iframe src="ad.html"></iframe></div>
 
-    <div id="ad-top"><iframe id="frame-top" src="ad.html"></iframe></div>
-    <div id="ad-bottom"><iframe id="frame-bottom" src="ad.html"></iframe></div>
+    <div id="game-area">
+        <div id="ui">SCORE: 0</div>
+        
+        <div id="menuScreen">
+            <div style="text-align:center;">
+                <h1 id="menuTitle" style="color:#009688; margin:0; font-size: 26px;">BREAKOUT SLIME</h1>
+                <p id="menuMsg" style="margin:5px 0;">パドルを動かしてブロックを壊せ！</p>
+                <div class="best-info">BEST SCORE: <span id="best-ui">0</span></div>
+            </div>
 
-    <div id="startScreen">
-        <h1 style="color:#009688; margin-bottom:10px;">BREAKOUT SLIME</h1>
-        <p>パドルを動かしてブロックを壊せ！</p>
-        <button id="goButton">GAME START</button>
-        <p style="margin-top:15px;">BEST: <span id="best-ui">0</span></p>
+            <div id="ad-middle-container">
+                <script src="https://adm.shinobi.jp/s/1e6de436ea850948e238e975a93767eb"></script>
+            </div>
+
+            <div class="btn-group" id="btnGroup">
+                <button id="goButton" class="menu-btn">GAME START</button>
+                <a href="https://saaaachi.github.io/Namber-Order/" class="menu-btn link-btn">他のゲームはこちら</a>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div id="ui">SCORE: 0</div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="ad-bottom"><iframe src="ad.html"></iframe></div>
 
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const ui = document.getElementById("ui");
-        const startScreen = document.getElementById("startScreen");
-        const bestUi = document.getElementById("best-ui");
+        const canvas = document.getElementById("gameCanvas"),
+              ctx = canvas.getContext("2d"),
+              ui = document.getElementById("ui"),
+              menuScreen = document.getElementById("menuScreen"),
+              menuTitle = document.getElementById("menuTitle"),
+              menuMsg = document.getElementById("menuMsg"),
+              bestUi = document.getElementById("best-ui"),
+              goButton = document.getElementById("goButton"),
+              adMid = document.getElementById("ad-middle-container"),
+              btnGroup = document.getElementById("btnGroup");
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 220;
-
-        let score = 0;
-        let bestScore = localStorage.getItem("breakout_best") || 0;
-        let gameActive = false;
-        bestUi.innerText = bestScore;
-
+        let score = 0, bestScore = localStorage.getItem("breakout_best") || 0, gameActive = false;
         let ball, paddle, bricks;
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.onload = () => { resize(); bestUi.innerText = bestScore; adMid.style.display = "none"; };
+        window.onresize = resize;
 
         function initGame() {
             ball = { x: canvas.width/2, y: canvas.height-50, dx: 4, dy: -4, r: 8 };
             paddle = { w: 90, h: 12, x: (canvas.width-90)/2 };
             bricks = [];
-            for(let c=0; c<5; c++) {
-                for(let r=0; r<4; r++) {
-                    bricks.push({ x: c * (canvas.width/5) + 5, y: r * 28 + 40, status: 1 });
+            const cols = 5, rows = 4;
+            const bW = (canvas.width / cols) - 10;
+            for(let c=0; c<cols; c++) {
+                for(let r=0; r<rows; r++) {
+                    bricks.push({ x: c * (canvas.width/cols) + 5, y: r * 28 + 40, w: bW, status: 1 });
                 }
             }
         }
 
-        document.getElementById("goButton").onclick = () => {
-            startScreen.style.display = "none";
+        goButton.onclick = () => {
+            menuScreen.style.display = "none";
+            adMid.style.display = "none";
             gameActive = true;
             score = 0;
             ui.innerText = "SCORE: 0";
@@ -77,8 +126,8 @@
 
         window.addEventListener("touchmove", (e) => {
             if(!gameActive) return;
-            paddle.x = e.touches[0].clientX - paddle.w/2;
-            // 画面外はみ出し防止
+            const rect = canvas.getBoundingClientRect();
+            paddle.x = e.touches[0].clientX - rect.left - paddle.w/2;
             if(paddle.x < 0) paddle.x = 0;
             if(paddle.x + paddle.w > canvas.width) paddle.x = canvas.width - paddle.w;
         });
@@ -87,35 +136,29 @@
             if(!gameActive) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // ボール移動
             ball.x += ball.dx;
             ball.y += ball.dy;
 
-            // 壁反射
             if(ball.x + ball.dx > canvas.width - ball.r || ball.x + ball.dx < ball.r) ball.dx = -ball.dx;
             if(ball.y + ball.dy < ball.r) ball.dy = -ball.dy;
             
-            // パドル反射
             if(ball.y + ball.dy > canvas.height - 25) {
                 if(ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
                     ball.dy = -Math.abs(ball.dy);
-                    // 当たる位置で角度を変える（ちょっとしたこだわり）
                     ball.dx = 8 * ((ball.x - (paddle.x + paddle.w/2)) / paddle.w);
                 }
             }
 
-            // ゲームオーバー
             if(ball.y + ball.dy > canvas.height) {
                 gameOver();
                 return;
             }
 
-            // ブロック判定
             let activeBricks = 0;
             bricks.forEach(b => {
                 if(b.status == 1) {
                     activeBricks++;
-                    if(ball.x > b.x && ball.x < b.x + (canvas.width/5 - 10) && ball.y > b.y && ball.y < b.y + 20) {
+                    if(ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + 20) {
                         ball.dy = -ball.dy;
                         b.status = 0;
                         score++;
@@ -123,25 +166,24 @@
                     }
                     ctx.fillStyle = "#0095DD";
                     ctx.beginPath();
-                    ctx.roundRect(b.x, b.y, (canvas.width/5 - 10), 20, 5);
+                    if(ctx.roundRect) ctx.roundRect(b.x, b.y, b.w, 20, 5);
+                    else ctx.rect(b.x, b.y, b.w, 20);
                     ctx.fill();
                 }
             });
 
-            // 無限ループ：全部壊したら復活
             if(activeBricks === 0) {
                 bricks.forEach(b => b.status = 1);
-                ball.dy *= 1.1; // 難易度アップ
+                ball.dy *= 1.1;
                 ball.dx *= 1.1;
             }
 
-            // パドル
             ctx.fillStyle = "#009688";
             ctx.beginPath();
-            ctx.roundRect(paddle.x, canvas.height-20, paddle.w, paddle.h, 5);
+            if(ctx.roundRect) ctx.roundRect(paddle.x, canvas.height-20, paddle.w, paddle.h, 5);
+            else ctx.rect(paddle.x, canvas.height-20, paddle.w, paddle.h);
             ctx.fill();
 
-            // ボール
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
             ctx.fillStyle = "#f44336";
@@ -156,20 +198,27 @@
             if(score > bestScore) {
                 bestScore = score;
                 localStorage.setItem("breakout_best", bestScore);
+                bestUi.innerText = bestScore;
             }
-            alert("GAME OVER!\nSCORE: " + score);
-            location.reload();
+            menuTitle.innerText = "GAME OVER";
+            menuTitle.style.color = "#f44336";
+            menuMsg.innerText = "SCORE: " + score;
+            goButton.innerText = "RETRY";
+            
+            btnGroup.style.opacity = "0";
+            btnGroup.style.pointerEvents = "none";
+            adMid.style.display = "flex"; 
+            menuScreen.style.display = "flex";
+
+            setTimeout(() => {
+                btnGroup.style.opacity = "1";
+                btnGroup.style.pointerEvents = "auto";
+            }, 600);
         }
 
-        // 🔥 30.0秒 強制転生プログラム
         setInterval(() => {
-            ["frame-top", "frame-bottom"].forEach(id => {
-                const frame = document.getElementById(id);
-                if (frame) {
-                    const currentSrc = frame.src;
-                    frame.src = "about:blank";
-                    setTimeout(() => { frame.src = currentSrc; }, 100);
-                }
+            document.querySelectorAll('iframe').forEach(f => {
+                const s = f.src; f.src = "about:blank"; setTimeout(() => f.src = s, 100);
             });
         }, 30000);
     </script>
