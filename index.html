@@ -7,32 +7,32 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1299640300068792" crossorigin="anonymous"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; position: fixed; touch-action: none; }
         body { 
-            margin: 0; height: 100vh; display: flex; flex-direction: column; 
-            background: #eceff1; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; 
+            display: flex; flex-direction: column; 
+            background: #eceff1; font-family: 'Segoe UI', sans-serif;
         }
         
-        /* 上下の広告枠 (150px固定で収益性を確保) */
-        #ad-top, #ad-bottom { 
-            width: 100%; height: 150px; background: #333; 
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 100;
+        /* 上部広告：100px固定（ここだけに絞る） */
+        #ad-top { 
+            width: 100%; height: 100px; background: #333; 
+            display: flex; align-items: center; justify-content: center; 
+            flex-shrink: 0; z-index: 100; border-bottom: 2px solid #009688;
         }
 
-        /* ゲームエリア */
+        /* ゲームエリア：下まで全開放 */
         #game-area { 
             flex-grow: 1; position: relative; width: 100%; background: #cfd8dc; overflow: hidden; 
         }
         canvas { display: block; width: 100%; height: 100%; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; font-size: 24px; font-weight: bold; color: #455a64; pointer-events: none; z-index: 10; text-shadow: 1px 1px 0px white; }
         
-        /* メニュー/リザルト画面 */
         #menuScreen { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.97); display: flex; flex-direction: column; 
             align-items: center; justify-content: center; z-index: 200; padding: 10px;
         }
 
-        /* 中央 300x250 レクタングル広告 */
         #ad-middle-box { 
             width: 300px; height: 250px; background: #f5f5f5; margin: 15px 0; 
             display: none; justify-content: center; align-items: center; 
@@ -46,7 +46,6 @@
         .link-btn { background: #ff4081; box-shadow: 0 4px #c2185b; }
         .best-info { color: #009688; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
 
-        /* 全画面広告オーバーレイ */
         #inter-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.96); z-index: 99999; align-items: center; justify-content: center; }
         .inter-content { width: 330px; height: 330px; background: #fff; position: relative; border-radius: 8px; }
         #close-ad-btn { position: absolute; top: -50px; right: 0px; width: 45px; height: 45px; background: #333; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; border: 2px solid #fff; cursor: pointer; }
@@ -83,11 +82,6 @@
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div id="ad-bottom">
-        <ins class="adsbygoogle" style="display:inline-block;width:320px;height:100px" data-ad-client="ca-pub-1299640300068792" data-ad-slot="3972022911"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    </div>
-
     <div id="inter-screen">
         <div class="inter-content">
             <div id="close-ad-btn" onclick="closeInterAd()">5</div>
@@ -113,8 +107,8 @@
         window.onresize = resize;
 
         function initGame() {
-            ball = { x: canvas.width/2, y: canvas.height-60, dx: 4, dy: -4, r: 9 };
-            paddle = { w: 100, h: 14, x: (canvas.width-100)/2 };
+            ball = { x: canvas.width/2, y: canvas.height-80, dx: 4, dy: -4, r: 9 };
+            paddle = { w: 100, h: 16, x: (canvas.width-100)/2 };
             bricks = [];
             const cols = 6, rows = 5;
             const bW = (canvas.width / cols) - 6;
@@ -146,23 +140,19 @@
             
             ball.x += ball.dx; ball.y += ball.dy;
 
-            // 壁バウンド
             if(ball.x + ball.dx > canvas.width - ball.r || ball.x + ball.dx < ball.r) ball.dx = -ball.dx;
             if(ball.y + ball.dy < ball.r) ball.dy = -ball.dy;
             
-            // パドルバウンド
-            if(ball.y + ball.dy > canvas.height - 30) {
+            // パドルバウンド（底から30pxの位置で判定）
+            if(ball.y + ball.dy > canvas.height - 35) {
                 if(ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
                     ball.dy = -Math.abs(ball.dy);
-                    // 跳ね返す角度を変更
                     ball.dx = 10 * ((ball.x - (paddle.x + paddle.w/2)) / paddle.w);
                 }
             }
 
-            // ミス
             if(ball.y + ball.dy > canvas.height) { gameOver(); return; }
 
-            // ブロック衝突
             let activeBricks = 0;
             bricks.forEach(b => {
                 if(b.status == 1) {
@@ -180,19 +170,17 @@
                 }
             });
 
-            // 全消しで加速リセット
             if(activeBricks === 0) {
                 bricks.forEach(b => b.status = 1);
                 ball.dy *= 1.15; ball.dx *= 1.15;
             }
 
-            // パドル描画
             ctx.fillStyle = "#009688";
             ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(paddle.x, canvas.height-20, paddle.w, paddle.h, 6); else ctx.rect(paddle.x, canvas.height-20, paddle.w, paddle.h);
+            // パドルを描画（画面端より少し上に配置）
+            if(ctx.roundRect) ctx.roundRect(paddle.x, canvas.height-25, paddle.w, paddle.h, 8); else ctx.rect(paddle.x, canvas.height-25, paddle.w, paddle.h);
             ctx.fill();
 
-            // ボール描画
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
             ctx.fillStyle = "#f44336";
@@ -225,8 +213,7 @@
                 goButton.innerText = "RETRY";
             }, 1500);
 
-            // 収益サイクル：3, 10, 17... (7回毎)
-            if (playCount === 3 || (playCount > 3 && (playCount - 3) % 7 === 0)) {
+            if (playCount % 3 === 0) {
                 setTimeout(showInterAd, 500);
             }
         }
@@ -236,14 +223,13 @@
             ifr.src = './ad.large.html?v=' + Date.now();
             screen.style.display = "flex";
             let timerVal = 5;
-            closeBtn.innerText = timerVal; closeBtn.style.pointerEvents = "none"; closeBtn.style.background = "#555";
+            closeBtn.innerText = timerVal; closeBtn.style.pointerEvents = "none";
             const countdown = setInterval(() => {
                 timerVal--;
                 if (timerVal > 0) closeBtn.innerText = timerVal;
                 else {
                     clearInterval(countdown);
                     closeBtn.innerText = "×";
-                    closeBtn.style.background = "#ff4444";
                     closeBtn.style.pointerEvents = "auto";
                 }
             }, 1000);
